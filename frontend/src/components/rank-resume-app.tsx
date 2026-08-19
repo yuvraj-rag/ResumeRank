@@ -364,10 +364,7 @@ export function RankResumeApp() {
               <div>
                 <p className="font-semibold text-sm">Backend Service Offline</p>
                 <p className="mt-0.5 text-xs text-red-800 dark:text-red-200/90">
-                  {health.message} Ensure your backend server is running at{" "}
-                  <code className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-xs dark:bg-red-900/50">
-                    http://127.0.0.1:8000
-                  </code>.
+                  {health.message} Ensure your backend server is running.
                 </p>
               </div>
             </div>

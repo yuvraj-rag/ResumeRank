@@ -89,7 +89,10 @@ class Settings:
     CORS_ORIGINS: List[str] = field(
         default_factory=lambda: _env_list(
             "CORS_ORIGINS",
-            ["http://localhost:3000", "http://127.0.0.1:3000"],
+            [
+                "http://localhost:3000",
+                "https://rank-resume-dun.vercel.app",
+            ]
         )
     )
 
