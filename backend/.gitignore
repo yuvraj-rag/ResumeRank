@@ -1,0 +1,24 @@
+# venv
+venv/
+.venv/
+
+# cache files
+__pycache__/
+*.pyc
+
+# vscode
+.vscode/
+
+# env
+.env
+
+# data
+data/cvs/*
+!data/cvs/.gitkeep
+
+data/job_descriptions/*
+!data/job_descriptions/.gitkeep
+
+# results
+results/*
+!results/.gitkeep
