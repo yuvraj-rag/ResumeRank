@@ -14,4 +14,8 @@ export const RANK_TIMEOUT_MS = Number(
   process.env.NEXT_PUBLIC_RANK_TIMEOUT_MS ?? 60_000
 );
 
+export const HISTORY_TIMEOUT_MS = Number(
+  process.env.NEXT_PUBLIC_HISTORY_TIMEOUT_MS ?? 30_000
+);
+
 export const HEALTH_TIMEOUT_MS = 5_000;

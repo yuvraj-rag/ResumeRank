@@ -9,6 +9,9 @@ PyMuPDF
 python-docx
 python-dateutil
 pytest
+supabase
+pyjwt[crypto]
+python-dotenv
 
 # after installing, download the spaCy model:
 # python -m spacy download en_core_web_md

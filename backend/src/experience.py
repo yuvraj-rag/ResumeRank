@@ -32,43 +32,41 @@ def _parse_duration_phrase(phrase: str) -> Optional[float]:
     """
     if not phrase:
         return None
-    p = phrase.lower()
-    # normalize common tokens
-    p = p.replace("yrs", "year").replace("yrs.", "year").replace("yrs", "year")
-    p = p.replace("months", "month").replace("mos", "month")
+    p = phrase.strip().lower()
 
     # look for patterns like '2-3 years' or '2 - 3 years' or '2 to 3 years'
-    m = re.search(r"(\d+(?:[\.,]\d+)?)\s*(?:-|to)\s*(\d+(?:[\.,]\d+)?)\s*(year|month)", p)
+    m = re.search(r"(\d+(?:[\.,]\d+)?)\s*(?:-|to)\s*(\d+(?:[\.,]\d+)?)\s*(?:years?|yrs?\.?|months?|mos?\.?)\b", p)
     if m:
         a = float(m.group(1).replace(',', '.'))
         b = float(m.group(2).replace(',', '.'))
-        unit = m.group(3)
+        matched_str = m.group(0)
         val = (a + b) / 2.0
-        return val / 12.0 if unit.startswith("month") else val
+        return val / 12.0 if "month" in matched_str or "mo" in matched_str else val
 
-    # single number + unit, possibly with + sign: '2+ years', '18 months'
-    m2 = re.search(r"(\d+(?:[\.,]\d+)?)(?:\+)?\s*(year|month)\b", p)
+    # single number + unit, possibly with + sign: '2+ years', '18 months', '3 years', '2 yrs'
+    m2 = re.search(r"(\d+(?:[\.,]\d+)?)\s*\+?\s*(years?|yrs?\.?|months?|mos?\.?)\b", p)
     if m2:
         val = float(m2.group(1).replace(',', '.'))
         unit = m2.group(2)
-        return val / 12.0 if unit.startswith("month") else val
+        return val / 12.0 if unit.startswith("m") else val
 
     return None
 
 
 def _find_duration_near(text: str, span: Tuple[int, int], skills: List[str],
+                        target_skill: Optional[str] = None,
                         small_window: int = 80, large_window: int = 200) -> Optional[Tuple[float, str]]:
     """Search for an explicit duration near a matched skill span.
 
     Returns (years, method) or None. Uses small window first, then large.
-    Avoids taking a duration if another skill appears between the duration and the target skill.
+    Avoids taking a duration if another skill appears strictly between the duration and the target skill.
     """
     start, end = span
 
     def search_window(win_left: int, win_right: int) -> Optional[Tuple[float, str]]:
         window = text[win_left:win_right]
         candidates = []
-        for m in re.finditer(r"(\d+(?:[\.,]\d+)?(?:\s*(?:-|to)\s*\d+(?:[\.,]\d+)?)?\s*(?:years?|yrs?|months?|mos?)\b)", window, flags=re.I):
+        for m in re.finditer(r"(\d+(?:[\.,]\d+)?(?:\s*(?:-|to)\s*\d+(?:[\.,]\d+)?)?\s*(?:years?|yrs?\.?|months?|mos?\.?)\b)", window, flags=re.I):
             match_start = win_left + m.start()
             match_end = win_left + m.end()
             # distance to skill
@@ -77,10 +75,16 @@ def _find_duration_near(text: str, span: Tuple[int, int], skills: List[str],
             years = _parse_duration_phrase(dur_text)
             if years and years > 0:
                 # ensure no other skill sits strictly between duration and target
-                between_span = (min(end, match_start), max(end, match_start))
-                between_text = text[between_span[0]:between_span[1]]
+                if match_end <= start:
+                    between_text = text[match_end:start]
+                elif end <= match_start:
+                    between_text = text[end:match_start]
+                else:
+                    between_text = ""
+
+                other_skills = [s for s in skills if s != target_skill] if target_skill else skills
                 conflict = False
-                for s in skills:
+                for s in other_skills:
                     if re.search(_skill_pattern(s), between_text):
                         conflict = True
                         break
@@ -199,7 +203,7 @@ def extract_experience_for_all(cvs: Dict[str, str], skills: List[str]) -> Dict[s
         for skill, spans in explicit_hits.items():
             best = None
             for span in spans:
-                res = _find_duration_near(text, span, skills=skills)
+                res = _find_duration_near(text, span, skills=skills, target_skill=skill)
                 if res:
                     years, method = res
                     if years and years > 0:

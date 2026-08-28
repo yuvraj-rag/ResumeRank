@@ -39,7 +39,7 @@ export function ThemeToggle() {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-2xs transition-all hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 shadow-2xs transition-all hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
         aria-label="Select theme"
         aria-expanded={isOpen}
       >
@@ -62,7 +62,7 @@ export function ThemeToggle() {
                   setTheme(value);
                   setIsOpen(false);
                 }}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                className={`cursor-pointer flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                   isSelected
                     ? "bg-zinc-100 text-zinc-900 font-semibold dark:bg-zinc-800 dark:text-white"
                     : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"

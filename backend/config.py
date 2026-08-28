@@ -1,33 +1,78 @@
 """
-config.py — centralized, environment-overridable settings.
+config.py — centralized application configuration and settings.
 
-Lives at the project root (not inside src/ or app/) so both the core
-pipeline modules (src/) and the FastAPI layer (app/) can depend on it
-without either one depending on the other.
+Distinguishes between:
+  1. Secrets & Environment-Specific Settings (loaded from .env.local)
+  2. Normal Application Configuration (constants, defaults, limits, scoring weights)
+
+Configuration Flow:
+  .env.local (secrets & environment-specific values)
+         ↓
+  config.py (central configuration interface & application defaults)
+         ↓
+  other backend modules
 """
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import FrozenSet, List
 
-
-def _env_float(name: str, default: float) -> float:
-    return float(os.getenv(name, default))
-
-
-def _env_int(name: str, default: int) -> int:
-    return int(os.getenv(name, default))
+# --- Centralized Environment Loader ---
+_BASE_DIR = Path(__file__).resolve().parent
 
 
-def _env_str(name: str, default: str) -> str:
+def _load_env_file_manual(filepath: Path) -> None:
+    """Fallback .env parser if python-dotenv is not installed."""
+    if not filepath.is_file():
+        return
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip()
+                if (val.startswith('"') and val.endswith('"')) or (
+                    val.startswith("'") and val.endswith("'")
+                ):
+                    val = val[1:-1]
+                os.environ.setdefault(key, val)
+    except Exception:
+        pass
+
+
+def _init_environment() -> None:
+    """
+    Loads secrets and environment-specific overrides from .env.local.
+    Falls back to .env if .env.local is not found.
+    """
+    env_local = _BASE_DIR / ".env.local"
+    env_default = _BASE_DIR / ".env"
+
+    target_env = (
+        env_local
+        if env_local.is_file()
+        else (env_default if env_default.is_file() else None)
+    )
+
+    if target_env:
+        try:
+            from dotenv import load_dotenv
+
+            load_dotenv(dotenv_path=target_env, override=False)
+        except ImportError:
+            _load_env_file_manual(target_env)
+
+
+# Execute environment loading at module import
+_init_environment()
+
+
+def _env_str(name: str, default: str = "") -> str:
     return os.getenv(name, default)
-
-
-def _env_bool(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
 def _env_list(name: str, default: List[str]) -> List[str]:
@@ -39,65 +84,64 @@ def _env_list(name: str, default: List[str]) -> List[str]:
 
 @dataclass(frozen=True)
 class Settings:
-    # --- NLP model ---
-    SPACY_MODEL: str = _env_str("SPACY_MODEL", "en_core_web_md")
+    # ==========================================================================
+    # 1. Secrets & Environment-Specific Configuration (from .env.local)
+    # ==========================================================================
 
-    # --- Scoring weights (SEMANTIC_WEIGHT + KEYWORD_WEIGHT must sum to 1.0) ---
-    SEMANTIC_WEIGHT: float = _env_float("SEMANTIC_WEIGHT", 0.65)
-    KEYWORD_WEIGHT: float = _env_float("KEYWORD_WEIGHT", 0.35)
+    # --- Supabase Admin & Project Settings ---
+    # Service-role key is trusted and server-only. Kept strictly in .env.local.
+    SUPABASE_URL: str = _env_str("SUPABASE_URL", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = _env_str("SUPABASE_SERVICE_ROLE_KEY", "")
 
-    # --- Keyword extraction / display ---
-    TOP_N_KEYWORDS: int = _env_int("TOP_N_KEYWORDS", 15)
-    KEYWORD_DISPLAY_LIMIT: int = _env_int("KEYWORD_DISPLAY_LIMIT", 5)
+    # Optional legacy shared HS256 secret (blank by default, uses public JWKS).
+    SUPABASE_JWT_SECRET: str = _env_str("SUPABASE_JWT_SECRET", "")
 
-    # Weight each matched keyword by its own TF-IDF importance instead of
-    # counting every keyword equally. Toggle-able so it can be rolled back
-    # instantly without a code change if it regresses ranking quality.
-    KEYWORD_WEIGHTING_ENABLED: bool = _env_bool("KEYWORD_WEIGHTING_ENABLED", True)
-
-    # Expand CV lemmas with known abbreviation/full-form equivalents
-    # (JS <-> JavaScript, ML <-> machine learning, ...) before keyword
-    # matching, so wording differences alone don't count as a missing keyword.
-    SYNONYM_EXPANSION_ENABLED: bool = _env_bool("SYNONYM_EXPANSION_ENABLED", True)
-
-    # Detect negated skill mentions ("not experienced in X") so a literal
-    # keyword match isn't treated as a positive signal.
-    NEGATION_AWARENESS_ENABLED: bool = _env_bool("NEGATION_AWARENESS_ENABLED", True)
-    NEGATION_WINDOW_TOKENS: int = _env_int("NEGATION_WINDOW_TOKENS", 4)
-
-    # --- Experience-informed scoring ---
-    # Independent of SEMANTIC_WEIGHT/KEYWORD_WEIGHT — only applied when a
-    # caller explicitly opts in (use_experience_in_score) and supplies
-    # required_skills. Blend formula:
-    #   final = (1 - EXPERIENCE_WEIGHT) * base_score + EXPERIENCE_WEIGHT * experience_score
-    EXPERIENCE_WEIGHT: float = _env_float("EXPERIENCE_WEIGHT", 0.2)
-    # Years of experience in a skill considered "fully satisfying" it (1.0).
-    EXPERIENCE_YEARS_CAP: float = _env_float("EXPERIENCE_YEARS_CAP", 5.0)
-
-    # --- Upload validation ---
-    ALLOWED_EXTENSIONS: FrozenSet[str] = field(
-        default_factory=lambda: frozenset({".txt", ".pdf", ".docx"})
-    )
-    MAX_FILE_SIZE_MB: float = _env_float("MAX_FILE_SIZE_MB", 10)
-    MAX_CV_COUNT: int = _env_int("MAX_CV_COUNT", 20)
-
-    # --- CORS ---
-    # Origins allowed to call this API from a browser. Defaults cover the
-    # standard local Next.js dev server; override with a comma-separated
-    # list in production, e.g.:
-    #   CORS_ORIGINS=https://rankresume.example.com,https://www.rankresume.example.com
+    # --- CORS Allowed Origins ---
+    # Origins allowed to access the API from browsers (differs per environment).
     CORS_ORIGINS: List[str] = field(
         default_factory=lambda: _env_list(
             "CORS_ORIGINS",
             [
                 "http://localhost:3000",
-                "https://rank-resume-dun.vercel.app",
-            ]
+                "http://127.0.0.1:3000",
+            ],
         )
     )
 
-    # --- Logging ---
+    # ==========================================================================
+    # 2. Normal Application Configuration (Fixed Behavior, Limits & Scoring)
+    # ==========================================================================
+
+    # --- NLP Model & Logging ---
+    SPACY_MODEL: str = "en_core_web_md"
     LOG_LEVEL: str = _env_str("LOG_LEVEL", "INFO")
+
+    # --- Scoring Weights (SEMANTIC_WEIGHT + KEYWORD_WEIGHT must equal 1.0) ---
+    SEMANTIC_WEIGHT: float = 0.65
+    KEYWORD_WEIGHT: float = 0.35
+
+    # --- Keyword Extraction & Representation ---
+    TOP_N_KEYWORDS: int = 15
+    KEYWORD_DISPLAY_LIMIT: int = 5
+    KEYWORD_WEIGHTING_ENABLED: bool = True
+    SYNONYM_EXPANSION_ENABLED: bool = True
+    NEGATION_AWARENESS_ENABLED: bool = True
+    NEGATION_WINDOW_TOKENS: int = 4
+
+    # --- Skill Experience Extraction & Scoring ---
+    EXPERIENCE_WEIGHT: float = 0.2
+    EXPERIENCE_YEARS_CAP: float = 5.0
+
+    # --- Upload Validation Limits ---
+    ALLOWED_EXTENSIONS: FrozenSet[str] = field(
+        default_factory=lambda: frozenset({".txt", ".pdf", ".docx"})
+    )
+    MAX_FILE_SIZE_MB: float = 10.0
+    MAX_CV_COUNT: int = 20
+
+    # --- Supabase Storage Bucket & URL TTL ---
+    SUPABASE_STORAGE_BUCKET: str = "rankresume-files"
+    SIGNED_URL_EXPIRY_SECONDS: int = 3600
 
     def __post_init__(self) -> None:
         weight_sum = round(self.SEMANTIC_WEIGHT + self.KEYWORD_WEIGHT, 4)
@@ -109,6 +153,14 @@ class Settings:
             raise ValueError(
                 f"EXPERIENCE_WEIGHT must be between 0.0 and 1.0, got {self.EXPERIENCE_WEIGHT}"
             )
+
+    @property
+    def SUPABASE_ENABLED(self) -> bool:
+        """
+        True once the minimum config needed to write to Supabase is
+        present. Checked at every persistence.py call site.
+        """
+        return bool(self.SUPABASE_URL and self.SUPABASE_SERVICE_ROLE_KEY)
 
 
 settings = Settings()

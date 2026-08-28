@@ -93,7 +93,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
               </h3>
             </div>
             <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 pl-6.5">
-              The job description and candidate resumes are parsed into high-dimensional word vectors using spaCy’s 300-dimensional language model (<code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">en_core_web_md</code>). Cosine similarity is computed between the document vectors to measure overall domain and technical context alignment.
+              The job description and candidate resumes are parsed into high-dimensional semantic vector embeddings. Cosine similarity is computed between document vectors to evaluate overall domain context and role alignment.
             </p>
           </div>
 
@@ -106,11 +106,11 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
               </h3>
             </div>
             <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 pl-6.5">
-              Extracts the top 15 key technical terms and phrases from the job description weighted by TF-IDF relevance. Each candidate’s coverage is evaluated with:
+              Extracts the top key technical terms and phrases from the job description weighted by relevance. Each candidate’s coverage is evaluated with:
             </p>
             <ul className="pl-12 list-disc space-y-1.5 text-sm text-zinc-600 dark:text-zinc-400">
               <li><strong>Synonym Expansion:</strong> Recognizes standard technical variations and abbreviations (e.g. <em>JS</em> ↔ <em>JavaScript</em>, <em>ML</em> ↔ <em>Machine Learning</em>, <em>Postgres</em> ↔ <em>PostgreSQL</em>).</li>
-              <li><strong>Negation Awareness:</strong> Inspects a 4-token window around phrases to ignore negated mentions (such as <em>&quot;not experienced in Docker&quot;</em>).</li>
+              <li><strong>Negation Awareness:</strong> Inspects contextual windows around phrases to ignore negated mentions (such as <em>&quot;not experienced in Docker&quot;</em>).</li>
             </ul>
           </div>
 
@@ -153,7 +153,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="size-3.5 text-zinc-700 dark:text-zinc-300 shrink-0" />
-                <span>Text-based PDF extraction via PyMuPDF</span>
+                <span>Standard text-based document parsing</span>
               </div>
             </div>
           </div>
@@ -164,7 +164,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="cursor-pointer rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
           >
             Close
           </button>

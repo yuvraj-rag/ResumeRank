@@ -1,6 +1,6 @@
 # RankResume
 
-A lightweight system to rank resumes against job descriptions using deterministic NLP scoring — combining vector semantic similarity, weighted keyword coverage, and skill experience estimation.
+A lightweight system to rank resumes against job descriptions using deterministic NLP scoring — combining vector semantic similarity, weighted keyword coverage, and skill experience estimation. Made using basic ML techniques, no AI or LLMs involved.
 
 ---
 
@@ -32,7 +32,7 @@ The ranking combines three signals:
 
 ## Getting Started
 
-### What You Need
+### Prerequisites
 - Python 3.9+
 - Node.js 18+ (optional, for the web UI)
 
@@ -87,27 +87,35 @@ Accepts `multipart/form-data`:
 **Example Response:**
 ```json
 {
+  "ranking_run_id": "9cf7f857-ec57-4142-9c9f-5f89066d477d",
   "jd_filename": "senior_backend_jd.txt",
+  "total_resumes_processed": 1,
   "rankings": [
     {
+      "rank": 1,
       "cv": "alex_morgan.pdf",
       "score": 0.8654,
       "semantic_score": 0.8821,
       "keyword_coverage": 0.8345,
-      "experience_score": 0.8000,
       "matched": ["python", "fastapi", "postgresql", "docker"],
-      "missing": ["kubernetes"]
+      "missing": ["kubernetes"],
+      "experience_score": 0.8000,
+      "experience": {
+        "python": { "years": 5.0, "method": "explicit_window" },
+        "docker": { "years": 3.0, "method": "job_block_inference" }
+      }
     }
   ],
-  "experience": {
-    "alex_morgan.pdf": {
-      "python": { "years": 5.0, "method": "explicit_window" },
-      "docker": { "years": 3.0, "method": "job_block_inference" }
-    }
-  },
-  "file_errors": []
+  "file_errors": {}
 }
 ```
+
+### History Endpoints (Authenticated)
+When signed in, ranking runs and original files are optionally saved to history:
+- `GET /history`: List saved ranking runs.
+- `GET /history/{run_id}`: Retrieve detailed results for a run.
+- `DELETE /history/{run_id}`: Delete a saved run and associated files.
+- `GET /history/{run_id}/files/{filename}`: Generate a signed download URL for original uploaded files.
 
 ---
 
@@ -117,25 +125,31 @@ Accepts `multipart/form-data`:
 RankResume/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py          # FastAPI application
-│   │   ├── routes.py        # API endpoints (/rank, /health)
-│   │   ├── schemas.py       # Pydantic models
-│   │   └── pipeline.py      # Core ranking orchestration
+│   │   ├── main.py            # FastAPI application
+│   │   ├── routes.py          # API endpoints (/rank, /health, /history)
+│   │   ├── schemas.py         # Pydantic request/response models
+│   │   ├── pipeline.py        # Core ranking orchestration
+│   │   ├── auth.py            # JWT authentication
+│   │   ├── persistence.py     # Database & storage persistence
+│   │   └── supabase_client.py # Client initialization
 │   ├── src/
-│   │   ├── extraction.py     # Text extraction (PDF, DOCX, TXT)
-│   │   ├── preprocessing.py  # Noise cleaning & lemmatization
-│   │   ├── representation.py # TF-IDF & spaCy vector embeddings
-│   │   ├── scoring.py        # Cosine similarity & keyword matching
-│   │   ├── experience.py     # Timeline & duration extraction
-│   │   ├── synonyms.py       # Technical abbreviation expansion
-│   │   └── negation.py       # Negation detection window
-│   ├── config.py            # Environment-overridable settings
+│   │   ├── extraction.py      # Text extraction (PDF, DOCX, TXT)
+│   │   ├── preprocessing.py   # Noise cleaning & lemmatization
+│   │   ├── representation.py  # TF-IDF & spaCy vector embeddings
+│   │   ├── scoring.py         # Cosine similarity & keyword matching
+│   │   ├── experience.py      # Timeline & duration extraction
+│   │   ├── synonyms.py        # Technical abbreviation expansion
+│   │   └── negation.py        # Negation detection window
+│   ├── config.py              # Central application settings & defaults
+│   ├── .env.example           # Environment template
 │   └── requirements.txt
 │
-└── frontend/                # Next.js web application
+└── frontend/                  # Next.js web application
     ├── src/
-    │   ├── app/             # Layout & pages
-    │   └── components/      # UI components & upload dropzones
+    │   ├── app/               # Layout & pages
+    │   ├── components/        # UI components & upload dropzones
+    │   ├── hooks/             # Authentication hooks
+    │   └── lib/               # API client & helpers
     └── package.json
 ```
 
@@ -143,16 +157,19 @@ RankResume/
 
 ## Configuration
 
-Settings can be customized via environment variables in `backend/config.py`:
+Standard application defaults are defined in `backend/config.py`. Private secrets and environment-specific endpoints can be set in `backend/.env.local`:
 
-| Variable | Default | Description |
+| Variable | Source | Description |
 | :--- | :--- | :--- |
-| `SEMANTIC_WEIGHT` | `0.65` | Weight for semantic cosine similarity |
-| `KEYWORD_WEIGHT` | `0.35` | Weight for keyword coverage |
-| `EXPERIENCE_WEIGHT` | `0.20` | Weight for experience blend (when enabled) |
-| `EXPERIENCE_YEARS_CAP` | `5.0` | Max years for 100% skill tenure credit |
-| `MAX_FILE_SIZE_MB` | `10` | Max file size in MB |
-| `MAX_CV_COUNT` | `20` | Max CVs per batch request |
+| `SUPABASE_URL` | `.env.local` | Supabase project URL (optional, for history & auth) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` | Supabase service-role secret key |
+| `CORS_ORIGINS` | `.env.local` | Allowed origins (e.g., `http://localhost:3000`) |
+| `SEMANTIC_WEIGHT` | `config.py` | Weight for semantic cosine similarity (`0.65`) |
+| `KEYWORD_WEIGHT` | `config.py` | Weight for keyword coverage (`0.35`) |
+| `EXPERIENCE_WEIGHT` | `config.py` | Weight for experience blend when enabled (`0.20`) |
+| `EXPERIENCE_YEARS_CAP` | `config.py` | Max years for 100% skill tenure credit (`5.0`) |
+| `MAX_FILE_SIZE_MB` | `config.py` | Max file size in MB (`10`) |
+| `MAX_CV_COUNT` | `config.py` | Max CVs per batch request (`20`) |
 
 ---
 

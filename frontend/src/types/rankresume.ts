@@ -28,6 +28,27 @@ export interface RankingResponse {
   rankings: CVRankingEntry[];
   experience: Record<string, Record<string, ExperienceDetail>>;
   file_errors: FileError[];
+  ranking_run_id?: string | null;
+}
+
+export interface HistoryRunSummary {
+  id: string;
+  jd_filename: string;
+  created_at: string;
+  cv_count: number;
+}
+
+export interface HistoryListResponse {
+  runs: HistoryRunSummary[];
+}
+
+export interface HistoryRunDetail extends RankingResponse {
+  created_at: string;
+}
+
+export interface SignedUrlResponse {
+  url: string;
+  expires_in: number;
 }
 
 export interface RankRequestOptions {

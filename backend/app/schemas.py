@@ -40,9 +40,37 @@ class RankingResponse(BaseModel):
     rankings: List[CVRankingEntry]
     experience: Dict[str, Dict[str, ExperienceDetail]] = Field(default_factory=dict)
     file_errors: List[FileError] = Field(default_factory=list)
+    # Present only when the caller was authenticated and the run was
+    # successfully saved to history; None for anonymous callers or if
+    # persistence failed (ranking itself still succeeds either way).
+    ranking_run_id: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
     """Response body for GET /health."""
     status: str
     spacy_model_loaded: bool
+
+
+class HistoryRunSummary(BaseModel):
+    """One entry in GET /history's list — no per-CV detail."""
+    id: str
+    jd_filename: str
+    created_at: str
+    cv_count: int
+
+
+class HistoryListResponse(BaseModel):
+    """Response body for GET /history."""
+    runs: List[HistoryRunSummary]
+
+
+class HistoryRunDetail(RankingResponse):
+    """Response body for GET /history/{run_id} — a full past ranking run."""
+    created_at: str
+
+
+class SignedUrlResponse(BaseModel):
+    """Response body for GET /history/{run_id}/files/{filename}."""
+    url: str
+    expires_in: int

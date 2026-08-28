@@ -1,0 +1,30 @@
+<svg viewBox="100 10 200 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with slight padding around the cropped mark -->
+  <rect x="100" y="10" width="200" height="180" rx="20" fill="#232D36" />
+
+  <!-- The Main Icon -->
+  <path d="
+    M 120 170
+    L 120 30
+    L 220 30
+    C 260 30, 280 50, 280 75
+    C 280 100, 260 120, 220 120
+    L 265 170
+    L 205 170
+    L 170 120
+    L 170 170
+    Z
+    M 180 112
+    L 205 112
+    L 205 80
+    C 215 70, 230 70, 240 76
+    L 253 76
+    L 253 54
+    C 233 42, 213 42, 205 58
+    L 205 48
+    L 180 48
+    Z" 
+    fill="#A9B8C2" 
+    fill-rule="evenodd" 
+  />
+</svg>

@@ -81,16 +81,6 @@ export function SingleFileDropzone({
           </label>
           <p className="text-sm text-zinc-500">{sublabel}</p>
         </div>
-        {onLoadSample && !file && (
-          <button
-            type="button"
-            onClick={onLoadSample}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white transition-colors"
-          >
-            <Sparkles className="size-3.5" />
-            <span>{sampleButtonText}</span>
-          </button>
-        )}
       </div>
 
       <input
@@ -116,7 +106,7 @@ export function SingleFileDropzone({
               inputRef.current?.click();
             }
           }}
-          className={`group flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${
+          className={`group relative flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 pb-14 text-center transition-all duration-200 ${
             isDragOver
               ? "border-zinc-900 bg-zinc-100/90 scale-[0.99] dark:border-zinc-100 dark:bg-zinc-800/90"
               : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30 dark:hover:border-zinc-600 dark:hover:bg-zinc-900/60"
@@ -131,6 +121,23 @@ export function SingleFileDropzone({
           <p className="mt-1 text-xs text-zinc-500">
             Drag & drop or browse ({ACCEPTED_EXTENSIONS.join(", ")}, max {MAX_FILE_SIZE_MB}MB)
           </p>
+
+          {/* Bottom-left Sample Button */}
+          {onLoadSample && (
+            <div className="absolute bottom-3 left-3.5 z-10">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLoadSample();
+                }}
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/90 bg-white/95 px-2.5 py-1 text-xs font-medium text-zinc-600 shadow-2xs backdrop-blur-xs transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 active:scale-[0.98] dark:border-zinc-700/90 dark:bg-zinc-800/95 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              >
+                <Sparkles className="size-3 text-amber-500" />
+                <span>{sampleButtonText}</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/90 animate-in fade-in duration-150">
@@ -151,14 +158,14 @@ export function SingleFileDropzone({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              className="cursor-pointer rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
             >
               Replace
             </button>
             <button
               type="button"
               onClick={() => onFileSelect(null)}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              className="cursor-pointer rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
               aria-label="Remove job description"
             >
               <X className="size-4.5" />
@@ -243,35 +250,25 @@ export function MultiFileDropzone({
           </label>
           <p className="text-sm text-zinc-500">{sublabel}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {onLoadSamples && files.length === 0 && (
-            <button
-              type="button"
-              onClick={onLoadSamples}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white transition-colors"
-            >
-              <Sparkles className="size-3.5" />
-              <span>{sampleButtonText}</span>
-            </button>
-          )}
+        <div className="flex items-center gap-2.5 shrink-0">
           {files.length > 0 && (
             <button
               type="button"
               onClick={clearAll}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
             >
               <Trash2 className="size-3.5" />
               <span>Clear all</span>
             </button>
           )}
           <span
-            className={`rounded-lg border px-2.5 py-1 font-mono text-xs tabular-nums ${
+            className={`whitespace-nowrap rounded-lg border px-2.5 py-1 font-mono text-xs font-medium tabular-nums ${
               files.length >= MAX_CV_COUNT
                 ? "border-amber-300 bg-amber-50 font-bold text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                 : "border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-300"
             }`}
           >
-            {files.length} / {MAX_CV_COUNT}
+            {files.length} / {MAX_CV_COUNT} CVs
           </span>
         </div>
       </div>
@@ -300,7 +297,9 @@ export function MultiFileDropzone({
             inputRef.current?.click();
           }
         }}
-        className={`group flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${
+        className={`group relative flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 ${
+          files.length === 0 ? "pb-14" : ""
+        } text-center transition-all duration-200 ${
           isDragOver
             ? "border-zinc-900 bg-zinc-100/90 scale-[0.99] dark:border-zinc-100 dark:bg-zinc-800/90"
             : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30 dark:hover:border-zinc-600 dark:hover:bg-zinc-900/60"
@@ -315,6 +314,23 @@ export function MultiFileDropzone({
         <p className="mt-1 text-xs text-zinc-500">
           Drag & drop multiple files (.pdf, .docx, .txt)
         </p>
+
+        {/* Bottom-left Sample Button */}
+        {onLoadSamples && files.length === 0 && (
+          <div className="absolute bottom-3 left-3.5 z-10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLoadSamples();
+              }}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/90 bg-white/95 px-2.5 py-1 text-xs font-medium text-zinc-600 shadow-2xs backdrop-blur-xs transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 active:scale-[0.98] dark:border-zinc-700/90 dark:bg-zinc-800/95 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            >
+              <Sparkles className="size-3 text-amber-500" />
+              <span>{sampleButtonText}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Uploaded CV file chips */}
@@ -338,7 +354,7 @@ export function MultiFileDropzone({
                   e.stopPropagation();
                   removeFile(idx);
                 }}
-                className="rounded p-1 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 transition-colors"
+                className="cursor-pointer rounded p-1 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 transition-colors"
                 aria-label={`Remove ${file.name}`}
               >
                 <X className="size-3.5" />

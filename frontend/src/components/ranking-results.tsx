@@ -6,8 +6,10 @@ import type {
   RankingResponse,
 } from "@/types/rankresume";
 import {
+  ArrowLeft,
   Award,
   BarChart3,
+  Calendar,
   Check,
   ChevronDown,
   ChevronRight,
@@ -16,8 +18,11 @@ import {
   Download,
   FileCheck2,
   Filter,
+  History,
   LayoutGrid,
   List,
+  Loader2,
+  PlusCircle,
   Search,
   Sparkles,
   Trophy,
@@ -37,6 +42,21 @@ function formatScore(value: number): string {
 
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatDate(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  } catch {
+    return isoString;
+  }
 }
 
 function getScoreBadgeColor(score: number): {
@@ -108,6 +128,8 @@ interface RankingRowProps {
   requiredSkills: string[];
   showExperienceBreakdown: boolean;
   showExperienceScore: boolean;
+  onDownloadFile?: (filename: string) => Promise<void>;
+  isDownloading?: boolean;
 }
 
 function RankingRow({
@@ -117,6 +139,8 @@ function RankingRow({
   requiredSkills,
   showExperienceBreakdown,
   showExperienceScore,
+  onDownloadFile,
+  isDownloading,
 }: RankingRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -165,13 +189,13 @@ function RankingRow({
           </span>
         </td>
 
-        {/* Candidate CV Name & Toggle */}
+        {/* Candidate CV Name & Toggle & Download Button */}
         <td className="px-5 py-4">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              className="cursor-pointer rounded-md p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
               aria-expanded={expanded}
               aria-label={expanded ? `Hide details for ${entry.cv}` : `Show details for ${entry.cv}`}
             >
@@ -184,6 +208,23 @@ function RankingRow({
             <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm sm:text-base">
               {entry.cv}
             </span>
+
+            {/* Optional Download Original CV button */}
+            {onDownloadFile && (
+              <button
+                type="button"
+                onClick={() => onDownloadFile(entry.cv)}
+                disabled={isDownloading}
+                className="cursor-pointer ml-1 inline-flex items-center gap-1 rounded-lg p-1 text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                title={`Download original ${entry.cv}`}
+              >
+                {isDownloading ? (
+                  <Loader2 className="size-3.5 animate-spin text-zinc-600 dark:text-zinc-300" />
+                ) : (
+                  <Download className="size-3.5" />
+                )}
+              </button>
+            )}
           </div>
         </td>
 
@@ -244,23 +285,40 @@ function RankingRow({
                     Candidate Breakdown: {entry.cv}
                   </h4>
                 </div>
-                <button
-                  type="button"
-                  onClick={copyCandidateSummary}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="size-3.5 text-emerald-600" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="size-3.5" />
-                      <span>Copy summary</span>
-                    </>
+                <div className="flex items-center gap-2">
+                  {onDownloadFile && (
+                    <button
+                      type="button"
+                      onClick={() => onDownloadFile(entry.cv)}
+                      disabled={isDownloading}
+                      className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Download className="size-3.5" />
+                      )}
+                      <span>Download File</span>
+                    </button>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={copyCandidateSummary}
+                    className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="size-3.5 text-emerald-600" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3.5" />
+                        <span>Copy summary</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
@@ -348,6 +406,12 @@ interface RankingResultsProps {
   requiredSkills: string[];
   showExperienceBreakdown: boolean;
   showExperienceScore: boolean;
+  rankingRunId?: string | null;
+  createdAt?: string;
+  onDownloadFile?: (filename: string) => Promise<void>;
+  downloadingFilename?: string | null;
+  onBackToHistory?: () => void;
+  onNewRanking?: () => void;
 }
 
 export function RankingResults({
@@ -355,6 +419,12 @@ export function RankingResults({
   requiredSkills,
   showExperienceBreakdown,
   showExperienceScore,
+  rankingRunId,
+  createdAt,
+  onDownloadFile,
+  downloadingFilename,
+  onBackToHistory,
+  onNewRanking,
 }: RankingResultsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<
@@ -362,6 +432,8 @@ export function RankingResults({
   >("score");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [copiedReport, setCopiedReport] = useState(false);
+
+  const effectiveRunId = result.ranking_run_id || rankingRunId;
 
   // Statistics calculation
   const totalCount = result.rankings.length;
@@ -444,13 +516,14 @@ export function RankingResults({
       `Benchmark JD: ${result.jd_filename}`,
       `Total Evaluated: ${totalCount} candidates`,
       `Average Score: ${formatScore(averageScore)} (${formatPercent(averageScore)})`,
+      createdAt ? `Evaluation Date: ${formatDate(createdAt)}` : null,
       `==============================`,
       ``,
       ...result.rankings.map(
         (r, i) =>
           `#${i + 1} | ${r.cv} | Score: ${formatScore(r.score)} | Semantic: ${formatPercent(r.semantic_score)} | Keywords: ${formatPercent(r.keyword_coverage)}`
       ),
-    ];
+    ].filter(Boolean);
 
     navigator.clipboard.writeText(lines.join("\n"));
     setCopiedReport(true);
@@ -461,10 +534,37 @@ export function RankingResults({
 
   return (
     <section aria-labelledby="rankings-heading" className="space-y-6 animate-in fade-in duration-200">
+      {/* Optional History Navigation Bar */}
+      {(onBackToHistory || onNewRanking) && (
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
+          {onBackToHistory ? (
+            <button
+              type="button"
+              onClick={onBackToHistory}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Back to History</span>
+            </button>
+          ) : <div />}
+
+          {onNewRanking && (
+            <button
+              type="button"
+              onClick={onNewRanking}
+              className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white transition-colors"
+            >
+              <PlusCircle className="size-3.5" />
+              <span>New Ranking</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Section Header & Export Toolbar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Trophy className="size-5.5 text-amber-500" />
             <h2
               id="rankings-heading"
@@ -472,21 +572,54 @@ export function RankingResults({
             >
               Candidate Rankings
             </h2>
+
+            {effectiveRunId && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/40">
+                <History className="size-3" />
+                <span>Saved to History</span>
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Scored against benchmark{" "}
-            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-              {result.jd_filename}
-            </span>
-          </p>
+
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-center gap-1.5">
+              <span>Benchmark:</span>
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                {result.jd_filename}
+              </span>
+              {onDownloadFile && (
+                <button
+                  type="button"
+                  onClick={() => onDownloadFile(result.jd_filename)}
+                  disabled={downloadingFilename === result.jd_filename}
+                  className="cursor-pointer inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                  title="Download benchmark JD file"
+                >
+                  {downloadingFilename === result.jd_filename ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Download className="size-3" />
+                  )}
+                  <span>Download JD</span>
+                </button>
+              )}
+            </div>
+
+            {createdAt && (
+              <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                <Calendar className="size-3.5" />
+                <span>{formatDate(createdAt)}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Export & Copy Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={copySummaryReport}
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-zinc-700 shadow-2xs transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {copiedReport ? (
               <>
@@ -504,7 +637,7 @@ export function RankingResults({
           <button
             type="button"
             onClick={exportToCSV}
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="cursor-pointer inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-zinc-900 px-3.5 py-2 text-xs sm:text-sm font-medium text-white shadow-2xs transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
           >
             <Download className="size-4" />
             <span>Export CSV</span>
@@ -513,56 +646,56 @@ export function RankingResults({
       </div>
 
       {/* KPI Metrics Strip */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {/* Metric 1 */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 text-zinc-500">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-1.5 text-zinc-500">
             <Users className="size-4" />
-            <span className="text-xs sm:text-sm font-medium">Evaluated</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Evaluated</span>
           </div>
           <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {totalCount} <span className="text-sm font-normal text-zinc-400">CVs</span>
+            {totalCount} <span className="text-xs font-normal text-zinc-400">CVs</span>
           </p>
         </div>
 
         {/* Metric 2 */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 text-zinc-500">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-1.5 text-zinc-500">
             <Award className="size-4 text-amber-500" />
-            <span className="text-xs sm:text-sm font-medium">Top Match</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Top Match</span>
           </div>
           <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {topCandidate ? formatPercent(topCandidate.score) : "—"}
           </p>
-          <p className="truncate text-xs text-zinc-500 mt-0.5">
+          <p className="truncate text-[11px] text-zinc-500 mt-0.5">
             {topCandidate?.cv}
           </p>
         </div>
 
         {/* Metric 3 */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 text-zinc-500">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-1.5 text-zinc-500">
             <BarChart3 className="size-4" />
-            <span className="text-xs sm:text-sm font-medium">Average Match</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Average Match</span>
           </div>
           <p className="mt-2 font-mono text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {formatPercent(averageScore)}
           </p>
-          <p className="text-xs text-zinc-500 font-mono mt-0.5">
-            {formatScore(averageScore)}
+          <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
+            raw: {formatScore(averageScore)}
           </p>
         </div>
 
         {/* Metric 4 */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 text-zinc-500">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-1.5 text-zinc-500">
             <Sparkles className="size-4" />
-            <span className="text-xs sm:text-sm font-medium">Scoring Weights</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Scoring Mode</span>
           </div>
-          <p className="mt-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            {showExperienceScore ? "65% Sem / 35% KW / 20% Exp" : "65% Semantic / 35% Keyword"}
+          <p className="mt-2 text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            {showExperienceScore ? "Semantic + Keyword + Exp" : "Semantic + Keyword Match"}
           </p>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-[11px] text-zinc-500 mt-0.5">
             {requiredSkills.length > 0
               ? `${requiredSkills.length} skills tracked`
               : "Standard weights"}
@@ -571,7 +704,7 @@ export function RankingResults({
       </div>
 
       {/* Filter and View Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/40">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-zinc-200 bg-white p-3.5 sm:p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900/40">
         {/* Search Bar */}
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
@@ -584,10 +717,10 @@ export function RankingResults({
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Sort Selector */}
           <div className="flex items-center gap-2">
-            <Filter className="size-4 text-zinc-400" />
+            <Filter className="size-4 text-zinc-400 shrink-0" />
             <select
               value={sortBy}
               onChange={(e) =>
@@ -595,9 +728,9 @@ export function RankingResults({
                   e.target.value as "score" | "semantic" | "keyword" | "experience" | "name"
                 )
               }
-              className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+              className="cursor-pointer rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-zinc-700 focus:border-zinc-900 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
             >
-              <option value="score">Sort: Match Score (High to Low)</option>
+              <option value="score">Sort: Match Score</option>
               <option value="semantic">Sort: Semantic Similarity</option>
               <option value="keyword">Sort: Keyword Coverage</option>
               {showExperienceScore && (
@@ -612,7 +745,7 @@ export function RankingResults({
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`rounded-lg p-1.5 transition-colors ${
+              className={`cursor-pointer rounded-lg p-1.5 transition-colors ${
                 viewMode === "table"
                   ? "bg-white text-zinc-900 shadow-2xs dark:bg-zinc-800 dark:text-zinc-100"
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
@@ -624,7 +757,7 @@ export function RankingResults({
             <button
               type="button"
               onClick={() => setViewMode("grid")}
-              className={`rounded-lg p-1.5 transition-colors ${
+              className={`cursor-pointer rounded-lg p-1.5 transition-colors ${
                 viewMode === "grid"
                   ? "bg-white text-zinc-900 shadow-2xs dark:bg-zinc-800 dark:text-zinc-100"
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
@@ -663,6 +796,8 @@ export function RankingResults({
                   requiredSkills={requiredSkills}
                   showExperienceBreakdown={showExperienceBreakdown}
                   showExperienceScore={showExperienceScore}
+                  onDownloadFile={onDownloadFile}
+                  isDownloading={downloadingFilename === entry.cv}
                 />
               ))}
             </tbody>
@@ -698,9 +833,26 @@ export function RankingResults({
                     </span>
                   </div>
 
-                  <h3 className="mt-4 truncate font-semibold text-zinc-900 dark:text-zinc-100 text-base">
-                    {entry.cv}
-                  </h3>
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <h3 className="truncate font-semibold text-zinc-900 dark:text-zinc-100 text-base">
+                      {entry.cv}
+                    </h3>
+                    {onDownloadFile && (
+                      <button
+                        type="button"
+                        onClick={() => onDownloadFile(entry.cv)}
+                        disabled={downloadingFilename === entry.cv}
+                        className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors shrink-0"
+                        title={`Download ${entry.cv}`}
+                      >
+                        {downloadingFilename === entry.cv ? (
+                          <Loader2 className="size-4 animate-spin text-zinc-600 dark:text-zinc-300" />
+                        ) : (
+                          <Download className="size-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
 
                   {/* Progress bar */}
                   <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">

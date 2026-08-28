@@ -1,14 +1,20 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
-            <FileText className="size-3.5" />
+          <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#232D36] shadow-2xs">
+            <Image
+              src="/favicon.svg"
+              alt="RankResume Logo"
+              width={28}
+              height={28}
+              className="size-7 object-contain"
+            />
           </div>
           <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             RankResume

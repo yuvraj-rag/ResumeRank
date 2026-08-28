@@ -91,7 +91,7 @@ export function SkillsInput({ skills, onChange, disabled }: SkillsInputProps) {
               <button
                 type="button"
                 onClick={() => removeSkill(index)}
-                className="rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-200 transition-colors"
+                className="cursor-pointer rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-200 transition-colors"
                 aria-label={`Remove skill ${skill}`}
               >
                 <X className="size-3.5" />
@@ -133,7 +133,7 @@ export function SkillsInput({ skills, onChange, disabled }: SkillsInputProps) {
                   type="button"
                   onClick={() => toggleSuggested(skill)}
                   aria-pressed={isSelected}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium transition-all active:scale-[0.97] ${
+                  className={`cursor-pointer inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium transition-all active:scale-[0.97] ${
                     isSelected
                       ? "border-zinc-300 bg-zinc-100 text-zinc-900 font-semibold dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                       : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"

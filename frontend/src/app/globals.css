@@ -78,6 +78,24 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* Interactive Element Defaults */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+select,
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 /* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/hooks/use-auth";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RankResume — Deterministic Candidate Ranking",
+  title: "RankResume — Candidate Screening & Resume Ranking",
   description:
     "Rank CVs against a job description using deterministic NLP scoring with semantic vectors, keyword coverage, and skill experience analysis.",
   keywords: [
@@ -24,6 +25,11 @@ export const metadata: Metadata = {
     "candidate screening",
     "recruitment tool",
   ],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export const viewport: Viewport = {
@@ -60,11 +66,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col bg-[#fafafa] text-[#09090b] dark:bg-[#09090b] dark:text-[#fafafa]">
         <ThemeProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
